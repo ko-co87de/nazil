@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Nazil</string>
+    <string name="tab_home">تحميل</string>
+    <string name="tab_library">المكتبة</string>
+    <string name="tab_settings">الإعدادات</string>
+</resources>
