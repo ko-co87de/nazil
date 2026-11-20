@@ -13,12 +13,9 @@ import com.nazil.app.data.DownloadStatus
 import com.nazil.app.data.FormatOption
 import com.nazil.app.data.MediaKind
 import com.nazil.app.data.Quality
-import com.nazil.app.data.ThemeMode
-import com.nazil.app.data.formatDuration
 import com.nazil.app.download.DownloadEngine
 import com.nazil.app.download.DownloadProgress
 import com.nazil.app.util.SiteDetector
-import com.yausername.youtubedl_android.mapper.VideoInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,8 +41,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     )
 
     var urlInput by mutableStateOf("")
-        private set
-    var fetchedInfo by mutableStateOf<VideoInfo?>(null)
         private set
     var fetchedJson by mutableStateOf<JSONObject?>(null)
         private set
@@ -86,7 +81,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onUrlChange(value: String) {
         urlInput = value
-        fetchedInfo = null
         fetchedJson = null
         availableFormats = emptyList()
         customFormat = null
@@ -110,13 +104,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             isFetching = true
             message = null
             runCatching {
-                // Fetch JSON info first (gives us formats + duration + uploader).
+                // Single yt-dlp call: --dump-json gives us formats, duration, uploader,
+                // thumbnail, title — everything we need. Avoids a second getInfo() call.
                 val json = engine.fetchInfoJson(url)
                 fetchedJson = json
                 availableFormats = engine.extractFormats(json)
-                // Also fetch the typed VideoInfo for thumbnail/title convenience.
-                runCatching { engine.fetchInfo(url) }
-                    .onSuccess { fetchedInfo = it }
             }.onFailure {
                 message = "ما كدرت أجيب المعلومات، أكدر أنزّل مباشرة"
             }
@@ -144,15 +136,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             message = "لصق رابط أول"
             return
         }
-        val info = fetchedInfo
         val json = fetchedJson
-        val site = info?.extractor ?: json?.optString("extractor_key") ?: SiteDetector.detect(url)
-        val ext = (info?.ext ?: json?.optString("ext"))?.lowercase()
-        val duration = (info?.duration as? Number)?.toLong()
-            ?: json?.optLong("duration", 0L)
-            ?: 0L
-        val uploader = info?.uploader ?: json?.optString("uploader")
-        val thumbnail = info?.thumbnail ?: json?.optString("thumbnail")
+        // Prefer the fetched JSON for metadata; fall back gracefully if fetch was skipped.
+        val site = json?.optString("extractor_key")?.ifBlank { null }
+            ?: json?.optString("extractor")?.ifBlank { null }
+            ?: SiteDetector.detect(url)
+        val ext = json?.optString("ext")?.ifBlank { null }?.lowercase()
+        val duration = json?.optLong("duration", 0L) ?: 0L
+        val uploader = json?.optString("uploader")?.ifBlank { null }
+        val thumbnail = json?.optString("thumbnail")?.ifBlank { null }
+        val title = json?.optString("title")?.ifBlank { null }
+            ?: json?.optString("fulltitle")?.ifBlank { null }
+            ?: "جارٍ التحميل…"
 
         val kind = when {
             quality == Quality.AUDIO -> MediaKind.AUDIO
@@ -169,7 +164,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val item = DownloadItem(
             id = UUID.randomUUID().toString(),
             url = url,
-            title = info?.title ?: json?.optString("title") ?: "جارٍ التحميل…",
+            title = title,
             thumbnail = thumbnail,
             uploader = uploader,
             durationSeconds = duration,
@@ -277,7 +272,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             )
             repo.upsert(fresh)
             urlInput = item.url
-            // Use stored formatId if available, else fall back to quality mapping.
+            // Pick the right quality for retry:
+            //  - if the original download used a custom format_id, retry with CUSTOM
+            //    and reuse the stored formatId on the item itself.
+            //  - otherwise map the media kind to a sensible default quality.
             val q = if (item.formatId != null) Quality.CUSTOM else mapKindToQuality(item.kind)
             runDownload(fresh, q)
         }

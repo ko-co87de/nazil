@@ -9,7 +9,6 @@ import com.nazil.app.data.formatBytes
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_android.YoutubeDLRequest
-import com.yausername.youtubedl_android.mapper.VideoInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -36,13 +35,10 @@ data class DownloadProgress(
 
 class DownloadEngine(private val context: Context) {
 
-    suspend fun fetchInfo(url: String): VideoInfo = withContext(Dispatchers.IO) {
-        YoutubeDL.getInstance().getInfo(url)
-    }
-
     /**
      * Fetch info as a raw JSON map so we can extract formats list, subtitles, etc.
      * yt-dlp returns the info dict; we use --dump-json under the hood.
+     * This is the single source of truth for both metadata and formats.
      */
     suspend fun fetchInfoJson(url: String): JSONObject = withContext(Dispatchers.IO) {
         val request = YoutubeDLRequest(url)

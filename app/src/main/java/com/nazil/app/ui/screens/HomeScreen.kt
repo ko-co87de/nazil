@@ -93,13 +93,13 @@ fun HomeScreen(
             )
         }
 
-        vm.fetchedInfo?.let { info ->
+        vm.fetchedJson?.let { json ->
             item {
                 PreviewCard(
-                    title = info.title ?: "بدون عنوان",
-                    thumbnail = info.thumbnail,
-                    site = info.extractor ?: "?",
-                    durationSeconds = (info.duration as? Number)?.toLong() ?: 0L,
+                    title = json.optString("title").ifBlank { json.optString("fulltitle") }.ifBlank { "بدون عنوان" },
+                    thumbnail = json.optString("thumbnail").ifBlank { null },
+                    site = json.optString("extractor_key").ifBlank { json.optString("extractor") }.ifBlank { "?" },
+                    durationSeconds = json.optLong("duration", 0L),
                     availableFormatsCount = vm.availableFormats.size,
                     onPickFormat = vm::openFormatPicker,
                 )
