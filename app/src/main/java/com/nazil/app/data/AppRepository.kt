@@ -3,7 +3,9 @@ package com.nazil.app.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,13 @@ class AppRepository(private val context: Context) {
         AppSettings(
             themeMode = prefs[KEY_THEME] ?: ThemeMode.SYSTEM,
             defaultQuality = prefs[KEY_QUALITY] ?: Quality.BEST,
+            sponsorBlock = prefs[KEY_SPONSOR_BLOCK] ?: true,
+            subtitleLangs = prefs[KEY_SUBTITLE_LANGS] ?: "ar,en",
+            downloadSubtitles = prefs[KEY_DOWNLOAD_SUBTITLES] ?: false,
+            maxConcurrent = (prefs[KEY_MAX_CONCURRENT] ?: 2).coerceIn(1, 4),
+            downloadOverWifiOnly = prefs[KEY_WIFI_ONLY] ?: false,
+            autoRetry = prefs[KEY_AUTO_RETRY] ?: true,
+            thumbnailCache = prefs[KEY_THUMB_CACHE] ?: true,
         )
     }
 
@@ -42,6 +51,29 @@ class AppRepository(private val context: Context) {
 
     suspend fun updateQuality(quality: String) {
         context.dataStore.edit { it[KEY_QUALITY] = quality }
+    }
+
+    suspend fun updateSponsorBlock(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SPONSOR_BLOCK] = enabled }
+    }
+
+    suspend fun updateSubtitles(enabled: Boolean, langs: String) {
+        context.dataStore.edit {
+            it[KEY_DOWNLOAD_SUBTITLES] = enabled
+            it[KEY_SUBTITLE_LANGS] = langs
+        }
+    }
+
+    suspend fun updateConcurrent(max: Int) {
+        context.dataStore.edit { it[KEY_MAX_CONCURRENT] = max.coerceIn(1, 4) }
+    }
+
+    suspend fun updateWifiOnly(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_WIFI_ONLY] = enabled }
+    }
+
+    suspend fun updateAutoRetry(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_AUTO_RETRY] = enabled }
     }
 
     suspend fun currentQuality(): String =
@@ -70,8 +102,20 @@ class AppRepository(private val context: Context) {
         persist()
     }
 
+    suspend fun clearAll() {
+        _history.value = emptyList()
+        persist()
+    }
+
     suspend fun clearCompleted() {
-        _history.value = _history.value.filterNot { it.isDone || it.status == DownloadStatus.FAILED || it.status == DownloadStatus.CANCELED }
+        _history.value = _history.value.filterNot {
+            it.isDone || it.status == DownloadStatus.FAILED || it.status == DownloadStatus.CANCELED
+        }
+        persist()
+    }
+
+    suspend fun clearFailed() {
+        _history.value = _history.value.filterNot { it.status == DownloadStatus.FAILED }
         persist()
     }
 
@@ -84,5 +128,12 @@ class AppRepository(private val context: Context) {
     companion object {
         private val KEY_THEME = stringPreferencesKey("theme_mode")
         private val KEY_QUALITY = stringPreferencesKey("default_quality")
+        private val KEY_SPONSOR_BLOCK = booleanPreferencesKey("sponsor_block")
+        private val KEY_SUBTITLE_LANGS = stringPreferencesKey("subtitle_langs")
+        private val KEY_DOWNLOAD_SUBTITLES = booleanPreferencesKey("download_subtitles")
+        private val KEY_MAX_CONCURRENT = intPreferencesKey("max_concurrent")
+        private val KEY_WIFI_ONLY = booleanPreferencesKey("wifi_only")
+        private val KEY_AUTO_RETRY = booleanPreferencesKey("auto_retry")
+        private val KEY_THUMB_CACHE = booleanPreferencesKey("thumbnail_cache")
     }
 }

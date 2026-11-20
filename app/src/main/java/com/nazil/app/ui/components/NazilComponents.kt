@@ -1,5 +1,10 @@
 package com.nazil.app.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,9 +19,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -35,9 +46,14 @@ import coil.compose.AsyncImage
 import com.nazil.app.data.DownloadItem
 import com.nazil.app.data.DownloadStatus
 import com.nazil.app.data.MediaKind
+import com.nazil.app.data.formatBytes
+import com.nazil.app.data.formatDuration
+import com.nazil.app.data.formatEta
+import com.nazil.app.data.formatSpeed
 import com.nazil.app.ui.theme.Amber
 import com.nazil.app.ui.theme.Indigo900
 import com.nazil.app.ui.theme.Rose
+import com.nazil.app.ui.theme.Success
 
 @Composable
 fun SitePill(site: String, modifier: Modifier = Modifier) {
@@ -92,6 +108,32 @@ fun MediaThumb(
     }
 }
 
+/**
+ * A small circular progress ring overlayed on the thumbnail of active downloads.
+ * Renders the percentage in the center.
+ */
+@Composable
+fun ProgressRing(
+    progress: Float,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Color(0x99000000)),
+        ) {
+            CircularProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier.padding(4.dp),
+                color = Amber,
+                strokeWidth = 3.dp,
+                trackColor = Color.White.copy(alpha = 0.3f),
+            )
+        }
+    }
+}
+
 @Composable
 fun DownloadRow(
     item: DownloadItem,
@@ -107,11 +149,19 @@ fun DownloadRow(
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                MediaThumb(
-                    url = item.thumbnail,
-                    kind = item.kind,
-                    modifier = Modifier.size(56.dp),
-                )
+                Box(modifier = Modifier.size(56.dp)) {
+                    MediaThumb(
+                        url = item.thumbnail,
+                        kind = item.kind,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (item.isActive) {
+                        ProgressRing(
+                            progress = item.progress,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -129,9 +179,38 @@ fun DownloadRow(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (item.durationSeconds > 0) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "· ${formatDuration(item.durationSeconds)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (item.uploader != null) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            item.uploader,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
                     }
                 }
                 trailing?.invoke()
+            }
+
+            // Feature badges row
+            val badges = buildList {
+                if (item.sponsorBlockApplied) add(BadgeSpec("SponsorBlock", Icons.Filled.Block, Amber))
+                if (item.withSubtitles) add(BadgeSpec("ترجمة", Icons.Filled.Subtitles, MaterialTheme.colorScheme.tertiary))
+            }
+            if (badges.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    badges.forEach { b -> FeatureBadge(b) }
+                }
             }
 
             if (item.isActive) {
@@ -151,46 +230,111 @@ fun DownloadRow(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "${(item.progress * 100).toInt()}%",
+                        text = "${item.progressPercent}%",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
                     )
-                    if (item.etaSeconds > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (item.speedBytesPerSec > 0) {
+                            Text(
+                                text = formatSpeed(item.speedBytesPerSec),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                "  •  ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (item.etaSeconds > 0) {
+                            Text(
+                                text = "باقي ${formatEta(item.etaSeconds)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StatusBadge(item)
+                    if (item.totalBytes > 0) {
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "باقي ${formatEta(item.etaSeconds)}",
+                            text = formatBytes(item.totalBytes),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-            } else {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = statusLabel(item),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = when (item.status) {
-                        DownloadStatus.COMPLETED -> MaterialTheme.colorScheme.primary
-                        DownloadStatus.FAILED -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
             }
         }
     }
 }
 
-private fun statusLabel(item: DownloadItem): String = when (item.status) {
-    DownloadStatus.COMPLETED -> "✓ مكتمل"
-    DownloadStatus.FAILED -> "✗ فشل${item.error?.let { " — $it" } ?: ""}"
-    DownloadStatus.CANCELED -> "ملغى"
-    DownloadStatus.QUEUED -> "بالانتظار…"
-    DownloadStatus.DOWNLOADING -> "ينزل…"
-    DownloadStatus.MERGING -> "يدمج…"
-    DownloadStatus.FETCHING -> "يجيب المعلومات…"
+private data class BadgeSpec(val text: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val tint: Color)
+
+@Composable
+private fun FeatureBadge(b: BadgeSpec) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = b.tint.copy(alpha = 0.15f),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(b.icon, contentDescription = null, tint = b.tint, modifier = Modifier.size(12.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(
+                b.text,
+                style = MaterialTheme.typography.labelSmall,
+                color = b.tint,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
 }
 
-private fun formatEta(seconds: Long): String {
-    val m = seconds / 60
-    val s = seconds % 60
-    return if (m > 0) "${m}د ${s}ث" else "${s}ث"
+@Composable
+private fun StatusBadge(item: DownloadItem) {
+    val (text, color, icon) = when (item.status) {
+        DownloadStatus.COMPLETED -> Triple("مكتمل", Success, Icons.Filled.CheckCircle)
+        DownloadStatus.FAILED -> Triple("فشل", MaterialTheme.colorScheme.error, Icons.Filled.Error)
+        DownloadStatus.CANCELED -> Triple("ملغى", MaterialTheme.colorScheme.onSurfaceVariant, Icons.Filled.Block)
+        DownloadStatus.QUEUED -> Triple("بالانتظار…", Amber, Icons.Filled.Movie)
+        DownloadStatus.DOWNLOADING -> Triple("ينزل…", MaterialTheme.colorScheme.primary, Icons.Filled.Movie)
+        DownloadStatus.MERGING -> Triple("يدمج…", MaterialTheme.colorScheme.tertiary, Icons.Filled.Movie)
+        DownloadStatus.FETCHING -> Triple("يجيب المعلومات…", MaterialTheme.colorScheme.secondary, Icons.Filled.Movie)
+    }
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = color.copy(alpha = 0.15f),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text,
+                style = MaterialTheme.typography.labelSmall,
+                color = color,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+    if (item.status == DownloadStatus.FAILED && item.error != null) {
+        Spacer(Modifier.width(6.dp))
+        Text(
+            item.error.take(60),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+            maxLines = 1,
+        )
+    }
 }

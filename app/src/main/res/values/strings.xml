@@ -3,4 +3,92 @@
     <string name="tab_home">تحميل</string>
     <string name="tab_library">المكتبة</string>
     <string name="tab_settings">الإعدادات</string>
+
+    <!-- Home screen -->
+    <string name="home_subtitle">الصق رابط من أي منصة ونزّله فوراً</string>
+    <string name="paste_link">لصق</string>
+    <string name="fetch_info">جيب معلومات</string>
+    <string name="download">نزّل</string>
+    <string name="link_hint">رابط الفيديو أو الصورة</string>
+    <string name="link_placeholder">https://youtube.com/watch?v=…</string>
+    <string name="active_section">يتحمّل هسه</string>
+    <string name="quality_section">الجودة</string>
+    <string name="pick_format">اختر صيغة</string>
+    <string name="formats_available">%1$d صيغة</string>
+
+    <!-- Library screen -->
+    <string name="library_title">المكتبة</string>
+    <string name="search_placeholder">ابحث بالعنوان، الموقع، أو المنشئ…</string>
+    <string name="clear">مسح</string>
+    <string name="clear_all">مسح الكل</string>
+    <string name="clear_completed">مسح المكتمل</string>
+    <string name="clear_failed">مسح الفاشل</string>
+    <string name="retry">إعادة</string>
+    <string name="share">مشاركة</string>
+    <string name="delete">حذف</string>
+    <string name="items_count">%1$d عنصر</string>
+    <string name="empty_library">ماكو تنزيلات بعد.\nروح لتبويب «تحميل» والصق رابط.</string>
+    <string name="empty_filter">ماكو نتائج بهذا الفلتر</string>
+
+    <!-- Status labels -->
+    <string name="status_completed">مكتمل</string>
+    <string name="status_failed">فشل</string>
+    <string name="status_canceled">ملغى</string>
+    <string name="status_queued">بالانتظار…</string>
+    <string name="status_downloading">ينزل…</string>
+    <string name="status_merging">يدمج…</string>
+    <string name="status_fetching">يجيب المعلومات…</string>
+    <string name="remaining_eta">باقي %1$s</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">المظهر</string>
+    <string name="settings_quality">الجودة الافتراضية</string>
+    <string name="settings_sponsorblock">SponsorBlock</string>
+    <string name="settings_sponsorblock_desc">شيل مقاطع الإعلانات والترويج من فيديوهات يوتيوب تلقائياً</string>
+    <string name="settings_subtitles">الترجمة (Subtitles)</string>
+    <string name="settings_subtitles_desc">نزّل ترجمة تلقائية مع الفيديو وادمجها بداخل ملف MP4</string>
+    <string name="settings_network">الشبكة</string>
+    <string name="settings_wifi_only">نزّل على واي فاي فقط</string>
+    <string name="settings_auto_retry">إعادة المحاولة تلقائياً عند الفشل</string>
+    <string name="settings_concurrent">التنزيلات المتزامنة</string>
+    <string name="settings_concurrent_desc">عدد التحميلات اللي تشتغل بنفس الوقت</string>
+    <string name="settings_download_dir">مجلد التنزيل</string>
+    <string name="settings_about">حول</string>
+    <string name="settings_about_desc">مبني على yt-dlp — يدعم 1000+ منصة فيديو وصوت وصور.</string>
+
+    <!-- Theme -->
+    <string name="theme_system">تلقائي</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_dark">داكن</string>
+
+    <!-- Filters -->
+    <string name="filter_all">الكل</string>
+    <string name="filter_video">فيديو</string>
+    <string name="filter_audio">صوت</string>
+    <string name="filter_image">صور</string>
+    <string name="filter_completed">مكتمل</string>
+    <string name="filter_failed">فشل</string>
+
+    <!-- Quality labels -->
+    <string name="quality_best">أفضل جودة</string>
+    <string name="quality_1080">1080p</string>
+    <string name="quality_720">720p</string>
+    <string name="quality_480">480p</string>
+    <string name="quality_audio">صوت MP3</string>
+    <string name="quality_custom">صيغة محددة</string>
+
+    <!-- Messages -->
+    <string name="msg_invalid_url">الرابط ما يبدو صحيح</string>
+    <string name="msg_fetch_failed">ما كدرت أجيب المعلومات، أكدر أنزّل مباشرة</string>
+    <string name="msg_paste_first">لصق رابط أول</string>
+    <string name="msg_download_done">✅ خلص التحميل</string>
+    <string name="msg_download_failed">❌ فشل: %1$s</string>
+
+    <!-- Format picker -->
+    <string name="format_picker_title">اختر الصيغة</string>
+    <string name="format_picker_count">%1$d صيغة متاحة</string>
+    <string name="format_no_options">ماكو صيغ متاحة، جرّب «جيب معلومات» أول</string>
+    <string name="format_audio_only">صوت فقط</string>
+    <string name="format_video_only">فيديو فقط</string>
+    <string name="format_combined">فيديو + صوت</string>
 </resources>
