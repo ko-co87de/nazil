@@ -62,7 +62,8 @@ class DownloadEngine(private val context: Context) {
         val result = mutableListOf<FormatOption>()
         for (i in 0 until arr.length()) {
             val f = arr.optJSONObject(i) ?: continue
-            val formatId = f.optString("format_id").ifBlank { continue }
+            val formatId = f.optString("format_id")
+            if (formatId.isBlank()) continue
             val ext = f.optString("ext", "?")
             val vcodec = f.optString("vcodec").ifBlank { null }
             val acodec = f.optString("acodec").ifBlank { null }
